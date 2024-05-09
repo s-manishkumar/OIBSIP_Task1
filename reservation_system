@@ -1,0 +1,310 @@
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Scanner;
+
+class User implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private String fullName;
+    private int age;
+    private String email;
+    private String username;
+    private String password;
+
+    public User(String fullName, int age, String email, String username, String password) {
+        this.fullName = fullName;
+        this.age = age;
+        this.email = email;
+        this.username = username;
+        this.password = password;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+}
+
+class Database {
+    private static final String USER_DATA_FILE = "userData.ser";
+    private static Map<String, User> users = new HashMap<>();
+
+    static {
+        loadUserData();
+    }
+
+    public static void addUser(User user) {
+        users.put(user.getUsername(), user);
+        saveUserData();
+    }
+
+    public static User getUser(String username) {
+        return users.get(username);
+    }
+
+    private static void loadUserData() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(USER_DATA_FILE))) {
+            users = (HashMap<String, User>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            // If file doesn't exist or error in reading, initialize an empty map
+            users = new HashMap<>();
+        }
+    }
+
+    private static void saveUserData() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USER_DATA_FILE))) {
+            oos.writeObject(users);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+class Reservation {
+    private String passengerName;
+    private String trainName;
+    private int trainNumber;
+    private String classType;
+    private String from;
+    private String to;
+    private String dateOfJourney;
+    private long pnrNumber;
+
+    public Reservation(String passengerName, String trainName, int trainNumber, String classType, String from, String to, String dateOfJourney) {
+        this.passengerName = passengerName;
+        this.trainName = trainName;
+        this.trainNumber = trainNumber;
+        this.classType = classType;
+        this.from = from;
+        this.to = to;
+        this.dateOfJourney = dateOfJourney;
+        this.pnrNumber = generatePNR();
+    }
+
+    public String getPassengerName() {
+        return passengerName;
+    }
+
+    public String getTrainName() {
+        return trainName;
+    }
+
+    public int getTrainNumber() {
+        return trainNumber;
+    }
+
+    public String getClassType() {
+        return classType;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public String getTo() {
+        return to;
+    }
+
+    public String getDateOfJourney() {
+        return dateOfJourney;
+    }
+
+    public long getPNRNumber() {
+        return pnrNumber;
+    }
+
+    private long generatePNR() {
+        Random random = new Random();
+        return Math.abs(random.nextLong()) % 10000000000L;
+    }
+}
+
+
+public class TrainReservationSystem {
+    private static Scanner scanner = new Scanner(System.in);
+    private static User currentUser;
+    private static Reservation currentReservation;
+
+    public static void main(String[] args) {
+        boolean exit = false;
+        while (!exit) {
+            System.out.println("\nWelcome to Online Train Reservation System\n");
+            System.out.println("Select an option:");
+            System.out.println("1. Login");
+            System.out.println("2. Reservation");
+            System.out.println("3. Cancellation");
+            System.out.println("4. Exit program");
+            System.out.print("\nEnter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    login();
+                    break;
+                case 2:
+                    if (currentUser != null) {
+                        makeReservation();
+                    } else {
+                        System.out.println("\nLogin before continuing.");
+                    }
+                    break;
+                case 3:
+                    if (currentUser != null) {
+                        cancelReservation();
+                    } else {
+                        System.out.println("\nLogin before continuing.");
+                    }
+                    break;
+                case 4:
+                    exit = true;
+                    System.out.println("\nExiting program... Goodbye!");
+                    break;
+                default:
+                    System.out.println("\nInvalid option. Please select a valid option.");
+            }
+        }
+    }
+
+    private static void login() {
+        boolean loggedIn = false;
+        while (!loggedIn) {
+            System.out.println("\nLogin");
+            System.out.println("\nSelect an option:");
+            System.out.println("1. Sign up");
+            System.out.println("2. Sign in");
+            System.out.print("\nEnter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    signUp();
+                    break;
+                case 2:
+                    signIn();
+                    break;
+                default:
+                    System.out.println("\nInvalid option. Please select a valid option.");
+            }
+
+            if (currentUser != null) {
+                loggedIn = true;
+            }
+        }
+    }
+
+    private static void signUp() {
+        System.out.println("\nSign up");
+        System.out.print("\nFull Name: ");
+        String fullName = scanner.nextLine();
+        System.out.print("Age: ");
+        int age = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Username: ");
+        String username = scanner.nextLine();
+        System.out.print("Create Password: ");
+        String password = scanner.nextLine();
+        System.out.print("Confirm Password: ");
+        String confirmPassword = scanner.nextLine();
+
+        if (password.equals(confirmPassword)) {
+            User newUser = new User(fullName, age, email, username, password);
+            Database.addUser(newUser);
+            System.out.println("\nSign up successful. You are now signed in.");
+            currentUser = newUser;
+        } else {
+            System.out.println("\nPasswords do not match. Sign up failed.");
+        }
+    }
+
+    private static void signIn() {
+        System.out.println("\nSign in");
+        System.out.print("\nUsername: ");
+        String username = scanner.nextLine();
+        System.out.print("Password: ");
+        String password = scanner.nextLine();
+        User user = Database.getUser(username);
+        if (user != null && user.getPassword().equals(password)) {
+            currentUser = user;
+            System.out.println("\nYou have Successfully Signed in");
+        } else {
+            System.out.println("\nInvalid username or password. Sign in failed.");
+        }
+    }
+
+    private static void makeReservation() {
+        System.out.println("\nReservation\n");
+        // Reservation details
+        System.out.println("Enter Reservation Details:\n");
+        System.out.print("Passenger Name: ");
+        String passengerName = scanner.nextLine();
+        System.out.print("Train Name: ");
+        String trainName = scanner.nextLine();
+        System.out.print("Train Number: ");
+        int trainNumber = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+        System.out.print("Class Type: ");
+        String classType = scanner.nextLine();
+        System.out.print("From: ");
+        String from = scanner.nextLine();
+        System.out.print("To: ");
+        String to = scanner.nextLine();
+        System.out.print("Date of Journey (DD-MM-YYYY): ");
+        String dateOfJourney = scanner.nextLine();
+
+        // Create reservation object
+        currentReservation = new Reservation(passengerName, trainName, trainNumber, classType, from, to, dateOfJourney);
+
+        // Display reservation details
+        System.out.println("\nReservation Successful... Here are the Details:\n");
+        System.out.println("Passenger Name: " + currentReservation.getPassengerName());
+        System.out.println("Train Details: " + currentReservation.getTrainName() + " " + "(" + currentReservation.getTrainNumber() + ")");
+        System.out.println("Class Type: " + currentReservation.getClassType());
+        System.out.println("From & To: " + currentReservation.getFrom() + " to " + currentReservation.getTo());
+        System.out.println("Date of Journey: " + currentReservation.getDateOfJourney());
+        System.out.println("PNR number is: " + currentReservation.getPNRNumber());
+    }
+
+    private static void cancelReservation() {
+        System.out.println("\nCancellation");
+        System.out.print("\nPlease enter the PNR number to cancel the reservation: ");
+        long enteredPNR = scanner.nextLong();
+        if (currentReservation != null && enteredPNR == currentReservation.getPNRNumber()) {
+            System.out.print("\nAre you sure you want to cancel this reservation? (yes/no): ");
+            String confirmCancel = scanner.next();
+            if (confirmCancel.equalsIgnoreCase("yes")) {
+                System.out.println("\nReservation has been cancelled successfully.");
+            } else {
+                System.out.println("\nReservation cancellation has been stopped.");
+            }
+        } else {
+            System.out.println("\nInvalid PNR number. Reservation cannot be cancelled.");
+        }
+    }
+}
